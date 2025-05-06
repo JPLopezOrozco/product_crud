@@ -1,84 +1,64 @@
-# Product CRUD API
+## 🔐 Autenticación con Spring Security + JWT
 
-Proyecto backend desarrollado con **Spring Boot** y **PostgreSQL**. La API permite gestionar un inventario de vapes, incluyendo operaciones CRUD, búsqueda por nombre parcial, filtrado por stock, flavour, brand y rango de precios.
+Se añadió autenticación basada en tokens JWT utilizando **Spring Security**. A continuación, se detallan los cambios más importantes realizados:
 
-## 🚀 Tecnologías utilizadas
+---
 
-- Java 17
-- Spring Boot
-- Spring Data JPA
-- PostgreSQL
-- Maven
+### 🧱 Estructura general
 
-## 🗃️ Estructura del Proyecto
-src/
-├── main/
-│   ├── java/
-│   │   └── com.example.productcrud/
-│   │       ├── controller/
-│   │       ├── model/
-│   │       ├── repository/
-│   │       ├── service/
-│   │       └── exceptions/
-│   └── resources/
-│       └── application.properties
-└── test/
-## ⚙️ Configuración de la base de datos
+- `SecurityConfig`: configuración de seguridad principal.
+- `JwtAuthenticationFilter`: filtro que intercepta peticiones y valida JWTs.
+- `JwtService`: clase encargada de generar, validar y extraer información del token.
+- `AuthenticationService`: clase encargada del login y registro.
+- `User`: entidad de usuario.
+- `UserRepository`: interfaz de acceso a la base de datos de usuarios.
+- `Role`: enum con los posibles roles del sistema.
+- `AuthenticationRequest / RegisterRequest`: DTOs para el login y el registro.
+- `AuthenticationResponse`: DTO que devuelve el token generado.
 
-En `src/main/resources/application.properties`:
+---
 
-```properties
-spring.application.name=product_crud
-server.port=8080
-spring.datasource.url=jdbc:postgresql://localhost:5432/productdb
-spring.datasource.username=dev
-spring.datasource.password=123456789
-spring.datasource.driver-class-name=org.postgresql.Driver
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
-```
-## 🧩 Importar la base de datos
+### 🔑 Endpoints públicos
 
-# Crear la base de datos vacía
-createdb -U postgres productdb
+| Método | Ruta        | Descripción        |
+|--------|-------------|--------------------|
+| POST   | `/auth/login`    | Inicia sesión con email y password. Devuelve un JWT. |
+| POST   | `/auth/register` | Registra un nuevo usuario. Devuelve un JWT. |
 
-# Importar el .sql
-psql -U postgres -d productdb -f database/productdb.sql
+> Todos los demás endpoints requieren un token JWT válido en el header `Authorization`.
 
-## 🧪 Endpoints disponibles
+---
 
-| Método | Endpoint                          | Descripción                         |
-|--------|-----------------------------------|-------------------------------------|
-| GET    | /vapes                            | Lista todos los vapes              |
-| GET    | /vapes/{id}                       | Busca vape por ID                  |
-| POST   | /vapes                            | Crea un nuevo vape                 |
-| PUT    | /vapes/{id}                       | Actualiza un vape                  |
-| DELETE | /vapes/{id}                       | Elimina un vape                    |
-| PUT    | /vapes/{id}/stock                 | Agrega stock a un vape             |
-| GET    | /vapes/stock                      | Lista los vapes con stock disponible |
-| GET    | /vapes/no-stock                   | Lista los vapes sin stock          |
-| GET    | /vapes/brand/{brand}              | Busca vapes por marca (parcial)    |
-| GET    | /vapes/flavour/{flavour}          | Busca vapes por sabor exacto       |
-| GET    | /vapes/partial?partialName=xxx    | Busca vapes por nombre parcial     |
-| GET    | /vapes/range?min=10&max=30        | Busca vapes por rango de precio    |
+### 🧪 Ejemplo de uso (con curl o Postman)
 
-## 📥 Ejemplo de creación de vape
+**Login:**
 
-```
-POST /vapes
+```http
+POST /auth/login
+Content-Type: application/json
+
 {
-  "name": "V150",
-  "brand": "Ignite",
-  "flavour": "Banana ice",
-  "puffs": 15000,
-  "price": 20000,
-  "stock": 10
+  "email": "ejemplo@correo.com",
+  "password": "123456"
 }
 ```
-## ✅ Próximas mejoras
-#### Seguridad con Spring Security
+```
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR..."
+}
+```
+### Enviar en cada request protegida:
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR...
 
-## 👨‍💻 Autor
-### Juan Pablo Lopez Orozco
-### 📍 Argentina
-### 🔗 GitHub - [@JPLopezOrozco](https://github.com/JPLopezOrozco)
+## 🔐 Seguridad
+- CSRF deshabilitado.
+- Sesión STATELESS.
+- Filtro JWT se ejecuta antes de UsernamePasswordAuthenticationFilter.
+- Email de usuario es único (usando @Column(unique = true)).
+
+## 🛡️ Validación del Token
+- Firma HMAC SHA256.
+- Verifica:
+- Caducidad del token.
+- Correo electrónico del usuario.
+- Que el usuario esté en la base de datos.
